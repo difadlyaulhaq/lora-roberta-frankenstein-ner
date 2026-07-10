@@ -1,0 +1,42 @@
+{
+    "overall_f1": 0.0,
+    "classification_report": "              precision    recall  f1-score   support\n\n    CARDINAL       0.00      0.00      0.00         1\n        DATE       0.00      0.00      0.00         1\n         GPE       0.00      0.00      0.00         1\n      PERSON       0.00      0.00      0.00         1\n\n   micro avg       0.00      0.00      0.00         4\n   macro avg       0.00      0.00      0.00         4\nweighted avg       0.00      0.00      0.00         4\n",
+    "muc5_errors": {
+        "COR": 0,
+        "INC": 0,
+        "MIS": 4,
+        "SPU": 0
+    },
+    "fine_grained_analysis": {
+        "eLen_short": {
+            "total": 4,
+            "correct": 0,
+            "accuracy": 0.0
+        },
+        "eLen_long": {
+            "total": 0,
+            "correct": 0,
+            "accuracy": 0.0
+        },
+        "eCon_consistent": {
+            "total": 2,
+            "correct": 0,
+            "accuracy": 0.0
+        },
+        "eCon_inconsistent": {
+            "total": 2,
+            "correct": 0,
+            "accuracy": 0.0
+        },
+        "eFre_few_shot": {
+            "total": 4,
+            "correct": 0,
+            "accuracy": 0.0
+        },
+        "eFre_many_shot": {
+            "total": 0,
+            "correct": 0,
+            "accuracy": 0.0
+        }
+    }
+}

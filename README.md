@@ -52,7 +52,49 @@ Eksperimen ini dibangun menggunakan ekosistem Python dengan pustaka utama beriku
 │   ├── data_loader.py     # Script pra-pemrosesan dan tokenisasi BIO
 │   ├── model.py           # Konfigurasi RoBERTa dan integrasi LoRA
 │   ├── train.py           # Pipeline Grid Search dan Fine-tuning
-│   └── evaluate.py        # Modul kalkulasi metrik (Linguistik, Komputasi, MUC-5, Fine-grained)
+│   ├── evaluate.py        # Modul kalkulasi metrik (Linguistik, Komputasi, MUC-5, Fine-grained)
+│   └── main.py            # Script utama orkestrator CLI pipeline
 ├── requirements.txt       # Daftar dependensi Python
 └── README.md              # Dokumentasi proyek
 ```
+
+## 🚀 Cara Menjalankan via CMD / Terminal
+
+Ikuti langkah-langkah di bawah ini untuk menjalankan eksperimen fine-tuning LoRA-RoBERTa menggunakan Command Prompt (CMD) atau PowerShell:
+
+### 1. Instalasi Dependensi
+Pastikan Python ($\ge$ 3.8) sudah terinstal, kemudian jalankan perintah berikut untuk menginstal seluruh pustaka yang diperlukan:
+```cmd
+pip install -r requirements.txt
+```
+
+### 2. Jalankan Fine-Tuning Standar
+Perintah ini akan menjalankan training standar menggunakan konfigurasi bawaan LoRA ($r=8$, $\alpha=16$) dan langsung mengevaluasi model pada data uji (menyimpan laporan lengkap hasil linguistik, komputasi, MUC-5, dan fine-grained dalam format JSON):
+```cmd
+python src/main.py --data_path data/frankenstein_annotated.json --output_dir ./results --epochs 3 --batch_size 8
+```
+
+### 3. Jalankan Hyperparameter Tuning (Grid Search)
+Untuk menyisir performa kombinasi Rank ($r \in [4, 8, 16]$) dan Alpha ($\alpha \in [8, 16, 32]$) guna memetakan performa terbaik (F1-score) serta melacak konsumsi VRAM dan kecepatan latih, jalankan perintah berikut:
+```cmd
+python src/main.py --data_path data/frankenstein_annotated.json --output_dir ./results --grid_search
+```
+
+### ⚙️ Referensi Parameter CLI (CMD Arguments)
+Anda dapat menyesuaikan parameter eksekusi dengan menambahkan argumen berikut saat menjalankan script:
+
+| Parameter | Tipe | Nilai Bawaan (Default) | Penjelasan |
+| :--- | :--- | :--- | :--- |
+| `--data_path` | `str` | `data/frankenstein_annotated.json` | Lokasi file dataset berformat BIO JSON/JSONL/CSV. |
+| `--model_name` | `str` | `roberta-base` | Model pre-trained checkpoint dari Hugging Face. |
+| `--output_dir` | `str` | `./results` | Folder tempat penyimpanan model terbaik dan file hasil evaluasi. |
+| `--grid_search` | `flag` | - | Mengaktifkan sweep parameter LoRA rank dan alpha (menyimpan hasil ke `grid_search_results.csv`). |
+| `--epochs` | `int` | `3` | Jumlah siklus pelatihan (hanya berlaku jika tidak memakai `--grid_search`). |
+| `--batch_size` | `int` | `8` | Ukuran batch pelatihan untuk input tensor. |
+| `--learning_rate`| `float`| `5e-4` | Learning rate yang dioptimalkan untuk LoRA adapter. |
+
+Contoh perintah dengan parameter kustom:
+```cmd
+python src/main.py --data_path data/frankenstein_annotated.json --epochs 5 --batch_size 16 --learning_rate 3e-4 --output_dir ./custom_results
+```
+

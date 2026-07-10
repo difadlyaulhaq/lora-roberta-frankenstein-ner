@@ -1,0 +1,42 @@
+{
+    "overall_f1": 0.14211438474870014,
+    "classification_report": "              precision    recall  f1-score   support\n\n    CARDINAL       0.00      0.00      0.00        42\n        DATE       0.00      0.00      0.00        48\n         FAC       0.00      0.00      0.00         2\n         GPE       0.00      0.00      0.00        56\n    LANGUAGE       0.00      0.00      0.00         5\n         LOC       0.00      0.00      0.00        16\n        NORP       0.00      0.00      0.00         9\n     ORDINAL       0.00      0.00      0.00        30\n         ORG       0.00      0.00      0.00         1\n      PERSON       0.19      0.38      0.25       108\n    QUANTITY       0.00      0.00      0.00         3\n        TIME       0.00      0.00      0.00        35\n WORK_OF_ART       0.00      0.00      0.00         2\n\n   micro avg       0.19      0.11      0.14       357\n   macro avg       0.01      0.03      0.02       357\nweighted avg       0.06      0.11      0.08       357\n",
+    "muc5_errors": {
+        "COR": 41,
+        "INC": 24,
+        "MIS": 292,
+        "SPU": 155
+    },
+    "fine_grained_analysis": {
+        "eLen_short": {
+            "total": 347,
+            "correct": 41,
+            "accuracy": 0.11815561959654179
+        },
+        "eLen_long": {
+            "total": 10,
+            "correct": 0,
+            "accuracy": 0.0
+        },
+        "eCon_consistent": {
+            "total": 178,
+            "correct": 0,
+            "accuracy": 0.0
+        },
+        "eCon_inconsistent": {
+            "total": 179,
+            "correct": 41,
+            "accuracy": 0.22905027932960895
+        },
+        "eFre_few_shot": {
+            "total": 134,
+            "correct": 0,
+            "accuracy": 0.0
+        },
+        "eFre_many_shot": {
+            "total": 223,
+            "correct": 41,
+            "accuracy": 0.18385650224215247
+        }
+    }
+}
