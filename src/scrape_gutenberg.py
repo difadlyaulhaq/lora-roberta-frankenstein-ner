@@ -86,14 +86,17 @@ def scrape_frankenstein(file_path):
             "content": "\n".join(current_text).strip()
         })
 
+    # Save to directory of file_path
+    base_dir = os.path.dirname(file_path)
+
     # 3. Save to JSON
-    json_output = "frankenstein_data.json"
+    json_output = os.path.join(base_dir, "frankenstein_data.json")
     with open(json_output, "w", encoding="utf-8") as f:
         json.dump(content_data, f, indent=4, ensure_ascii=False)
     
     # 4. Save to CSV (Useful for Pandas/ML datasets)
     import csv
-    csv_output = "frankenstein_dataset.csv"
+    csv_output = os.path.join(base_dir, "frankenstein_dataset.csv")
     with open(csv_output, "w", encoding="utf-8", newline='') as f:
         writer = csv.writer(f)
         writer.writerow(["title", "content"])
@@ -101,7 +104,7 @@ def scrape_frankenstein(file_path):
             writer.writerow([chapter["title"], chapter["content"]])
 
     # 5. Save to TXT (Clean plain text for training)
-    txt_output = "frankenstein_clean.txt"
+    txt_output = os.path.join(base_dir, "frankenstein_clean.txt")
     with open(txt_output, "w", encoding="utf-8") as f:
         for chapter in content_data["chapters"]:
             f.write(f"--- {chapter['title']} ---\n")
@@ -115,7 +118,11 @@ def scrape_frankenstein(file_path):
 
 if __name__ == "__main__":
     target_url = "https://www.gutenberg.org/ebooks/84.html.images"
-    local_file = "frankenstein.html"
+    # Locate data folder relative to this script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.abspath(os.path.join(script_dir, "..", "data"))
+    os.makedirs(data_dir, exist_ok=True)
+    local_file = os.path.join(data_dir, "frankenstein.html")
     
     if not os.path.exists(local_file):
         if download_file(target_url, local_file):

@@ -1,0 +1,11 @@
+torch
+transformers
+peft
+datasets
+tokenizers
+scikit-learn
+seqeval
+pandas
+numpy
+matplotlib
+beautifulsoup4
