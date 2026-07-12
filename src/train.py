@@ -2,10 +2,10 @@ import os
 import numpy as np
 import pandas as pd
 import torch
-from transformers import Trainer, TrainingArguments, DataCollatorForTokenClassification, AutoTokenizer
+from transformers import Trainer, TrainingArguments, DataCollatorForTokenClassification, AutoTokenizer, EarlyStoppingCallback
 from seqeval.metrics import f1_score, precision_score, recall_score
 from .model import get_roberta_lora_model
-from .evaluate import profile_computing_performance
+from .evaluate import profile_computing_performance, evaluate_muc5_errors, evaluate_fine_grained
 
 def get_compute_metrics_fn(id2tag):
     """
@@ -38,23 +38,29 @@ def train_model(model, train_dataset, eval_dataset, training_args, id2tag, data_
     """
     compute_metrics_fn = get_compute_metrics_fn(id2tag)
     
+    callbacks = []
+    if training_args.load_best_model_at_end:
+        # Patience set to 3 epochs. If eval F1 doesn't improve, stop early.
+        callbacks.append(EarlyStoppingCallback(early_stopping_patience=3))
+        
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         data_collator=data_collator,
-        compute_metrics=compute_metrics_fn
+        compute_metrics=compute_metrics_fn,
+        callbacks=callbacks
     )
     trainer.train()
     return trainer
 
-def grid_search_lora(train_dataset, eval_dataset, id2tag, model_name="roberta-base", num_labels=19, output_dir="./results"):
+def grid_search_lora(train_dataset, eval_dataset, id2tag, model_name="roberta-base", num_labels=19, output_dir="./results", eval_data=None, epochs=10):
     """
     Perform grid search over different values of LoRA Rank (r) and Alpha (alpha).
     """
-    r_values = [4, 8, 16]
-    alpha_values = [8, 16, 32]
+    r_values = [4, 8, 16, 32]
+    alpha_values = [16, 32, 64]
     
     results = []
     
@@ -76,7 +82,7 @@ def grid_search_lora(train_dataset, eval_dataset, id2tag, model_name="roberta-ba
                 learning_rate=5e-4,  # Standard learning rate for LoRA tuning
                 per_device_train_batch_size=8,
                 per_device_eval_batch_size=8,
-                num_train_epochs=3,
+                num_train_epochs=epochs,
                 weight_decay=0.01,
                 logging_steps=10,
                 load_best_model_at_end=True,
@@ -119,6 +125,25 @@ def grid_search_lora(train_dataset, eval_dataset, id2tag, model_name="roberta-ba
             
             print(f"Eval results: F1={f1:.4f}, Precision={precision:.4f}, Recall={recall:.4f}")
             
+            # Get predictions for MUC-5 and fine-grained evaluations
+            predictions_output = trainer.predict(eval_dataset)
+            preds = predictions_output.predictions
+            labels = predictions_output.label_ids
+            preds_argmax = preds.argmax(axis=2)
+            
+            true_preds = []
+            true_labels = []
+            for pred, label in zip(preds_argmax, labels):
+                true_preds.append([id2tag[p] for p, l in zip(pred, label) if l != -100])
+                true_labels.append([id2tag[l] for p, l in zip(pred, label) if l != -100])
+                
+            # MUC-5 errors
+            muc5_results = evaluate_muc5_errors(true_preds, true_labels)
+            
+            # Fine-grained analysis
+            eval_sentences = [x["tokens"] for x in eval_data] if eval_data else None
+            fine_grained_results = evaluate_fine_grained(true_preds, true_labels, sentences=eval_sentences)
+            
             results.append({
                 "rank": r,
                 "alpha": alpha,
@@ -126,7 +151,17 @@ def grid_search_lora(train_dataset, eval_dataset, id2tag, model_name="roberta-ba
                 "precision": precision,
                 "recall": recall,
                 "training_time_sec": training_time,
-                "peak_vram_gb": peak_vram
+                "peak_vram_gb": peak_vram,
+                "muc5_COR": muc5_results.get("COR", 0),
+                "muc5_INC": muc5_results.get("INC", 0),
+                "muc5_MIS": muc5_results.get("MIS", 0),
+                "muc5_SPU": muc5_results.get("SPU", 0),
+                "eLen_short_acc": fine_grained_results.get("eLen_short", {}).get("accuracy", 0.0),
+                "eLen_long_acc": fine_grained_results.get("eLen_long", {}).get("accuracy", 0.0),
+                "eCon_consistent_acc": fine_grained_results.get("eCon_consistent", {}).get("accuracy", 0.0),
+                "eCon_inconsistent_acc": fine_grained_results.get("eCon_inconsistent", {}).get("accuracy", 0.0),
+                "eFre_few_shot_acc": fine_grained_results.get("eFre_few_shot", {}).get("accuracy", 0.0),
+                "eFre_many_shot_acc": fine_grained_results.get("eFre_many_shot", {}).get("accuracy", 0.0),
             })
             
             # Clean up memory to avoid accumulation across runs

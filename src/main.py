@@ -76,7 +76,9 @@ def main():
             id2tag=id2tag,
             model_name=args.model_name,
             num_labels=num_labels,
-            output_dir=args.output_dir
+            output_dir=args.output_dir,
+            eval_data=eval_data,
+            epochs=args.epochs
         )
     else:
         # Standard Single Run Training

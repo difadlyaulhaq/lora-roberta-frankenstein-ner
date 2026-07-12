@@ -4,29 +4,25 @@
         "B-CARDINAL": 1,
         "B-DATE": 2,
         "B-GPE": 3,
-        "B-LOC": 4,
-        "B-ORDINAL": 5,
-        "B-PERSON": 6,
-        "B-TIME": 7,
-        "I-DATE": 8,
-        "I-GPE": 9,
-        "I-LOC": 10,
-        "I-PERSON": 11,
-        "I-TIME": 12
+        "B-ORDINAL": 4,
+        "B-PERSON": 5,
+        "I-CARDINAL": 6,
+        "I-DATE": 7,
+        "I-GPE": 8,
+        "I-ORDINAL": 9,
+        "I-PERSON": 10
     },
     "id2tag": {
         "0": "O",
         "1": "B-CARDINAL",
         "2": "B-DATE",
         "3": "B-GPE",
-        "4": "B-LOC",
-        "5": "B-ORDINAL",
-        "6": "B-PERSON",
-        "7": "B-TIME",
-        "8": "I-DATE",
-        "9": "I-GPE",
-        "10": "I-LOC",
-        "11": "I-PERSON",
-        "12": "I-TIME"
+        "4": "B-ORDINAL",
+        "5": "B-PERSON",
+        "6": "I-CARDINAL",
+        "7": "I-DATE",
+        "8": "I-GPE",
+        "9": "I-ORDINAL",
+        "10": "I-PERSON"
     }
 }
