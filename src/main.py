@@ -70,7 +70,7 @@ def main():
     # 5. Run Execution Mode
     if args.grid_search:
         print("\nStarting LoRA Grid Search Sweep...")
-        grid_search_lora(
+        df_results = grid_search_lora(
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
             id2tag=id2tag,
@@ -80,6 +80,40 @@ def main():
             eval_data=eval_data,
             epochs=args.epochs
         )
+        
+        # Determine and finalize the best model
+        if df_results is not None and not df_results.empty:
+            import shutil
+            best_idx = df_results["f1"].idxmax()
+            best_row = df_results.loc[best_idx]
+            best_r = int(best_row["rank"])
+            best_alpha = int(best_row["alpha"])
+            best_f1 = best_row["f1"]
+            
+            print("\n========================================")
+            print("GRID SEARCH COMPLETED - BEST MODEL SUMMARY")
+            print("========================================")
+            print(f"Best Configuration: Rank (r) = {best_r}, Alpha (alpha) = {best_alpha}")
+            print(f"Best Validation F1-Score: {best_f1:.6f}")
+            print(f"Precision: {best_row['precision']:.6f} | Recall: {best_row['recall']:.6f}")
+            print(f"Training Time: {best_row['training_time_sec']:.2f} seconds")
+            
+            # Find and copy checkpoints for the best model to a dedicated folder
+            best_exp_dir = os.path.join(args.output_dir, f"lora_r{best_r}_a{best_alpha}")
+            dest_best_dir = os.path.join(args.output_dir, "best_model")
+            
+            if os.path.exists(best_exp_dir):
+                checkpoints = [c for c in os.listdir(best_exp_dir) if c.startswith("checkpoint-")]
+                if checkpoints:
+                    # Sort numerically to find the highest checkpoint
+                    checkpoints.sort(key=lambda x: int(x.split("-")[1]))
+                    best_checkpoint_dir = os.path.join(best_exp_dir, checkpoints[-1])
+                    
+                    if os.path.exists(dest_best_dir):
+                        shutil.rmtree(dest_best_dir)
+                    
+                    shutil.copytree(best_checkpoint_dir, dest_best_dir)
+                    print(f"Successfully copied the best model weights to: '{dest_best_dir}'")
     else:
         # Standard Single Run Training
         print(f"\nInitializing standard LoRA model (r=8, alpha=16)")
