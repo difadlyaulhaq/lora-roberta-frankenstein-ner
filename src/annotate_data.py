@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import torch
 from transformers import pipeline
 
 def sent_tokenize(text):
@@ -31,15 +32,17 @@ def annotate_text(raw_json_path, output_json_path, model_name="tner/bert-base-on
     with open(raw_json_path, "r", encoding="utf-8") as f:
         raw_data = json.load(f)
 
-    # 1. Initialize Hugging Face NER Pipeline
-    print(f"Loading pre-trained NER model: {model_name}...")
+    # 1. Initialize Hugging Face NER Pipeline with GPU support
+    device = 0 if torch.cuda.is_available() else -1
+    device_name = "GPU (cuda)" if device == 0 else "CPU"
+    print(f"Loading pre-trained NER model: {model_name} on device: {device_name}...")
     try:
         # aggregation_strategy="simple" groups subword predictions into word-level entities
-        ner_pipeline = pipeline("ner", model=model_name, aggregation_strategy="simple")
+        ner_pipeline = pipeline("ner", model=model_name, aggregation_strategy="simple", device=device)
     except Exception as e:
         print(f"Error loading model: {e}")
         print("Falling back to a standard model (dslim/bert-base-NER)...")
-        ner_pipeline = pipeline("ner", model="dslim/bert-base-NER", aggregation_strategy="simple")
+        ner_pipeline = pipeline("ner", model="dslim/bert-base-NER", aggregation_strategy="simple", device=device)
 
     annotated_dataset = []
     

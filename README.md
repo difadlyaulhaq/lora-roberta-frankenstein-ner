@@ -45,14 +45,15 @@ Program ini bekerja melalui empat tahap utama, dari pengolahan teks novel mentah
 ```mermaid
 graph TD
     %% Tahap 1
-    subgraph Tahap_1 [1. Pengumpulan & Anotasi Data]
+    subgraph Tahap_1 [1. Pengumpulan, Anotasi & Koreksi Data]
         A[Project Gutenberg HTML] -->|scrape_gutenberg.py| B[data/frankenstein_data.json]
         B -->|annotate_data.py| C[data/frankenstein_annotated_auto.json]
+        C -->|patch_dataset.py| K[data/frankenstein_annotated.json - Koreksi Bias Label]
     end
 
     %% Tahap 2
     subgraph Tahap_2 [2. Tokenisasi & Setup PEFT]
-        C -->|data_loader.py| D[Token Alignment & Label -100]
+        K -->|data_loader.py| D[Token Alignment & Label -100]
         D -->|model.py| E[Frozen RoBERTa-base + LoRA Adapters]
     end
 
@@ -74,9 +75,10 @@ graph TD
 
 ### Penjelasan Detail Tiap Tahap:
 
-1. **Tahap 1: Pengumpulan & Anotasi Data (`scrape_gutenberg.py` & `annotate_data.py`)**
+1. **Tahap 1: Pengumpulan, Anotasi & Koreksi Data (`scrape_gutenberg.py`, `annotate_data.py` & `patch_dataset.py`)**
    * **Scraping:** Program mengunduh teks novel *Frankenstein* versi bahasa Inggris dari Project Gutenberg, membersihkan elemen HTML, memilah struktur bab, dan menyimpannya ke berkas JSON mentah.
    * **Anotasi Otomatis:** Teks mentah dipecah menjadi kalimat dan kata (*tokens*). Setiap token dipindai menggunakan model NER pra-terlatih berbasis standar OntoNotes 5.0 untuk mendeteksi entitas nama secara otomatis (misal: mengidentifikasi tokoh "*The Monster*" sebagai `PERSON`) dan menghasilkan berkas anotasi dalam format BIO.
+   * **Koreksi Bias Label:** Data anotasi mentah disaring kembali menggunakan skrip pembersih dataset untuk secara eksplisit melabeli kata benda penunjuk karakter (*monster, creature, wretch, fiend, creator*) yang tadinya terlewat/salah diberi label `"O"` di kunci jawaban aslinya, menjadi `"B-PERSON"` / `"I-PERSON"`. Ini bertujuan melatih model secara murni tanpa bias data latih.
 
 2. **Tahap 2: Tokenisasi & Setup PEFT (`data_loader.py` & `model.py`)**
    * **Token Alignment:** Token kata diubah menjadi ID angka menggunakan tokenizer cepat RoBERTa (`RobertaTokenizerFast`). Karena tokenizer ini memecah beberapa kata menjadi subwords (suku kata pecahan), program menyelaraskan label BIO agar pecahan kata tersebut diberi label `-100` (agar diabaikan selama proses perhitungan performa klasifikasi).
@@ -94,6 +96,8 @@ graph TD
 ```text
 ├── data/                  # Korpus teks mentah dan dataset beranotasi (Frankenstein)
 ├── notebooks/             # Eksperimen interaktif (Jupyter Notebook / Colab)
+├── scratch/
+│   └── patch_dataset.py   # Script pembersih & koreksi bias label dataset
 ├── src/
 │   ├── scrape_gutenberg.py # Script pengunduh & ekstraktor teks novel mentah dari Gutenberg
 │   ├── data_loader.py     # Script pra-pemrosesan dan tokenisasi BIO
@@ -108,7 +112,7 @@ graph TD
 └── README.md              # Dokumentasi proyek
 ```
 
-## 🚀 Cara Menjalankan via CMD / Terminal
+## Cara Menjalankan via CMD / Terminal
 
 Ikuti langkah-langkah di bawah ini untuk menjalankan alur eksperimen komplit dari awal:
 
@@ -126,31 +130,38 @@ python src/scrape_gutenberg.py
 *Catatan: Berkas hasil ekstraksi teks mentah akan disimpan di `data/frankenstein_data.json`.*
 
 ### 3. Pra-pemrosesan & Anotasi BIO Otomatis
-Melabeli teks novel mentah secara otomatis menggunakan model bahasa pra-terlatih untuk diubah menjadi dataset berformat BIO siap latih:
+Melabeli teks novel mentah secara otomatis menggunakan model bahasa pra-terlatih untuk diubah menjadi dataset berformat BIO:
 ```cmd
 python src/annotate_data.py
 ```
 *Catatan: Berkas anotasi hasil proses ini akan disimpan di `data/frankenstein_annotated_auto.json`.*
 
-### 4. Jalankan Fine-Tuning Standar
+### 4. Koreksi Bias Label Dataset (Krusial untuk Hidden Entities)
+Membersihkan data anotasi dan secara eksplisit melabeli kata benda penunjuk karakter sastra yang terlewat oleh model standar menjadi entitas `PERSON`:
+```cmd
+python scratch/patch_dataset.py
+```
+*Catatan: Berkas `data/frankenstein_annotated.json` akan otomatis dikoreksi dan siap digunakan sebagai data latih yang bebas bias.*
+
+### 5. Jalankan Fine-Tuning Standar
 Menjalankan training standar menggunakan konfigurasi bawaan LoRA ($r=8$, $\alpha=16$) dan langsung mengevaluasi model pada data uji (menyimpan laporan lengkap hasil ke format JSON):
 ```cmd
 python src/main.py --data_path data/frankenstein_annotated.json --output_dir ./results --epochs 3 --batch_size 8
 ```
 
-### 5. Jalankan Hyperparameter Tuning (Grid Search)
+### 6. Jalankan Hyperparameter Tuning (Grid Search)
 Menyisir performa kombinasi Rank ($r \in [4, 8, 16, 32]$) dan Alpha ($\alpha \in [16, 32, 64]$) guna memetakan performa terbaik (F1-score), melacak beban VRAM/waktu latih, dan menyalin model terbaik secara otomatis ke folder `./results/best_model`:
 ```cmd
 python src/main.py --data_path data/frankenstein_annotated.json --output_dir ./results --grid_search
 ```
 
-### 6. Menghasilkan Grafik Analisis Hasil (Visualisasi)
+### 7. Menghasilkan Grafik Analisis Hasil (Visualisasi)
 Memplot seluruh metrik hasil eksperimen grid search (menghasilkan diagram *heatmap* F1-score, perbandingan galat MUC-5, ketahanan atribut *fine-grained*, dan garis efisiensi waktu) ke dalam folder `results/plots/`:
 ```cmd
 python src/visualize_results.py
 ```
 
-### 7. Inferensi / Pelabelan Teks Baru (Pasca-Training)
+### 8. Inferensi / Pelabelan Teks Baru (Pasca-Training)
 * **Untuk melabeli satu kalimat tunggal:**
   Menggunakan model terbaik yang sudah dilatih (disimpan di `results/best_model`) untuk memprediksi dan melabeli entitas pada kalimat baru:
   ```cmd
@@ -166,7 +177,7 @@ python src/visualize_results.py
   *Catatan: Berkas hasil keluaran prediksi dataset lengkap akan disimpan di `results/whole_dataset_predictions.json`.*
 
 
-### ⚙️ Referensi Parameter CLI (CMD Arguments)
+### Referensi Parameter CLI (CMD Arguments)
 Anda dapat menyesuaikan parameter eksekusi dengan menambahkan argumen berikut saat menjalankan script:
 
 | Parameter | Tipe | Nilai Bawaan (Default) | Penjelasan |

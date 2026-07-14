@@ -9,9 +9,31 @@ from peft import PeftModel
 # Add parent directory of 'src' to path to handle package imports when run directly
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+def print_model_config(model_dir):
+    """
+    Read adapter_config.json from model_dir and print PEFT/LoRA configuration.
+    """
+    config_path = os.path.join(model_dir, "adapter_config.json")
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r") as f:
+                config = json.load(f)
+            print("--------------------------------------------------")
+            print(f"[PEFT/LoRA] Loaded Model Config from '{model_dir}':")
+            print(f"  - Base Model:     {config.get('base_model_name_or_path')}")
+            print(f"  - LoRA Rank (r):  {config.get('r')}")
+            print(f"  - LoRA Alpha (a): {config.get('lora_alpha')}")
+            print(f"  - Target Modules: {', '.join(config.get('target_modules', []))}")
+            print("--------------------------------------------------")
+        except Exception as e:
+            print(f"Warning: Could not parse adapter_config.json: {e}")
+    else:
+        print(f"Warning: adapter_config.json not found in '{model_dir}'.")
+
 def predict_entities(text, model_dir="results/best_model", mappings_path="results/tag_mappings.json"):
     """
     Load the best trained LoRA model and predict NER tags for a given raw text.
+    Runs 100% pure machine learning inference using the model weights.
     """
     # 1. Load Tag Mappings
     if not os.path.exists(mappings_path):
@@ -29,13 +51,18 @@ def predict_entities(text, model_dir="results/best_model", mappings_path="result
         return
         
     print(f"Loading best LoRA model from '{model_dir}'...")
+    print_model_config(model_dir)
+    
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"[Device] Running inference on: '{device}'")
     
     # Load tokenizer and base model
     tokenizer = RobertaTokenizerFast.from_pretrained("roberta-base", add_prefix_space=True)
     base_model = RobertaForTokenClassification.from_pretrained("roberta-base", num_labels=num_labels)
     
-    # Load LoRA adapter weights on top of the base model
+    # Load LoRA adapter weights on top of the base model and move to device
     model = PeftModel.from_pretrained(base_model, model_dir)
+    model.to(device)
     model.eval()
     
     # 3. Tokenize input text
@@ -46,6 +73,9 @@ def predict_entities(text, model_dir="results/best_model", mappings_path="result
         return_tensors="pt", 
         truncation=True
     )
+    
+    # Move inputs to device (retaining BatchEncoding class to keep word_ids method)
+    inputs = inputs.to(device)
     
     # 4. Predict
     with torch.no_grad():
@@ -82,6 +112,7 @@ def predict_dataset(data_path, output_path="results/whole_dataset_predictions.js
     """
     Load a full dataset from data_path, predict NER tags for each sample using the best model,
     and save the combined tokens, true tags, and predicted tags to output_path.
+    Runs 100% pure machine learning inference using the model weights.
     """
     from src.data_loader import load_data
     
@@ -106,12 +137,21 @@ def predict_dataset(data_path, output_path="results/whole_dataset_predictions.js
         return
         
     print(f"Loading best model and running inference on {len(data)} samples...")
+    print_model_config(model_dir)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"[Device] Running inference on: '{device}'")
+    
     tokenizer = RobertaTokenizerFast.from_pretrained("roberta-base", add_prefix_space=True)
     base_model = RobertaForTokenClassification.from_pretrained("roberta-base", num_labels=num_labels)
     model = PeftModel.from_pretrained(base_model, model_dir)
+    model.to(device)
     model.eval()
     
     results = []
+    
+    # Initialize hidden entities tracking (for report purposes only)
+    hidden_keywords = ["monster", "creature", "wretch", "fiend", "demon", "creator"]
+    hidden_stats = {k: {"total": 0, "detected": 0} for k in hidden_keywords}
     
     # Batch/loop prediction
     for idx, sample in enumerate(data):
@@ -126,6 +166,9 @@ def predict_dataset(data_path, output_path="results/whole_dataset_predictions.js
             return_tensors="pt", 
             truncation=True
         )
+        
+        # Move inputs to device (retaining BatchEncoding class to keep word_ids method)
+        inputs = inputs.to(device)
         
         with torch.no_grad():
             outputs = model(**inputs)
@@ -150,6 +193,14 @@ def predict_dataset(data_path, output_path="results/whole_dataset_predictions.js
         elif len(predicted_tags) > len(words):
             predicted_tags = predicted_tags[:len(words)]
             
+        # Track hidden entity detection rates
+        for w, true_t, pred_t in zip(words, true_tags, predicted_tags):
+            clean_word = w.lower().strip(".,;:!?\"'()[]{}")
+            if clean_word in hidden_keywords:
+                hidden_stats[clean_word]["total"] += 1
+                if "PERSON" in pred_t:
+                    hidden_stats[clean_word]["detected"] += 1
+            
         results.append({
             "tokens": words,
             "true_tags": true_tags,
@@ -165,6 +216,40 @@ def predict_dataset(data_path, output_path="results/whole_dataset_predictions.js
         json.dump(results, f, indent=4, ensure_ascii=False)
         
     print(f"\nSuccess! Saved whole dataset predictions to: '{output_path}'")
+    
+    # Compile and display Hidden Entity Detection Report
+    print("\n==================================================")
+    print("      LITERARY HIDDEN ENTITY DETECTION REPORT      ")
+    print("==================================================")
+    total_all = 0
+    detected_all = 0
+    for keyword, stats in hidden_stats.items():
+        total = stats["total"]
+        detected = stats["detected"]
+        total_all += total
+        detected_all += detected
+        acc = (detected / total * 100.0) if total > 0 else 0.0
+        print(f"- '{keyword:10}': Detected {detected}/{total} times (Recall: {acc:.2f}%)")
+    print("--------------------------------------------------")
+    overall_acc = (detected_all / total_all * 100.0) if total_all > 0 else 0.0
+    print(f"Overall Hidden Entity Recall: {detected_all}/{total_all} ({overall_acc:.2f}%)")
+    print("==================================================")
+    
+    # Save the report as text file for easy copy-paste to thesis
+    report_path = os.path.join(os.path.dirname(output_path), "hidden_entity_detection_report.txt")
+    with open(report_path, "w", encoding="utf-8") as rf:
+        rf.write("==================================================\n")
+        rf.write("      LITERARY HIDDEN ENTITY DETECTION REPORT      \n")
+        rf.write("==================================================\n")
+        for keyword, stats in hidden_stats.items():
+            total = stats["total"]
+            detected = stats["detected"]
+            acc = (detected / total * 100.0) if total > 0 else 0.0
+            rf.write(f"- '{keyword:10}': Detected {detected}/{total} times (Recall: {acc:.2f}%)\n")
+        rf.write("--------------------------------------------------\n")
+        rf.write(f"Overall Hidden Entity Recall: {detected_all}/{total_all} ({overall_acc:.2f}%)\n")
+        rf.write("==================================================\n")
+    print(f"Detailed analysis report saved to: '{report_path}'")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Inference script to label raw text or whole dataset using the best trained model.")
