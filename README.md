@@ -118,6 +118,30 @@ Membaca berkas hasil CSV dari ketiga metode untuk diplot menjadi **6 grafik anal
 5. `method_comparison_f1_hidden.png` - Grafik batang komparatif F1-Score vs Hidden Entity Recall antara Baseline, Regular LoRA, dan Best LoRA (Baru!).
 6. `method_comparison_time_vram.png` - Perbandingan efisiensi daya komputasi (Waktu Latih vs Peak VRAM) antara Baseline, Regular LoRA, dan Best LoRA (Baru!).
 
+### 6. Inferensi & Koreksi Label BIO (`src/predict.py`)
+Digunakan untuk melakukan inferensi prediksi tag NER baik pada satu kalimat tunggal (`--text`) maupun pada keseluruhan dataset (`--data_path`).
+
+Dalam prosesnya, script ini mengimplementasikan metode **Hybrid (Deep Learning + Rule-Based)** untuk mengoreksi anomali format penulisan tag BIO:
+* **Deep Learning (RoBERTa-LoRA):** Memprediksi probabilitas kelas token secara cerdas dan kontekstual.
+* **Rule-Based Post-Processing (`post_process_bio_tags`):** Karena klasifikasi model dilakukan per token secara independen (tanpa layer CRF), model mentah terkadang memprediksi urutan BIO yang tidak valid—seperti mendeteksi nama gabungan *"Victor Frankenstein"* sebagai `B-PERSON` diikuti `B-PERSON` (akibat bias kata *"Frankenstein"* yang sering berdiri sendiri sebagai `B-PERSON` di data latih). Aturan heuristik pasca-prediksi ini otomatis mendeteksi ketidaksesuaian transisi tersebut dan merapikannya ke format BIO yang valid (`B-PERSON` -> `I-PERSON`).
+
+**Contoh Perbandingan Output Inferensi:**
+* **Input:** `I saw Victor Frankenstein and the Monster in Geneva.`
+* **Raw Model Output:**
+  ```text
+  Victor               -> B-PERSON
+  Frankenstein         -> B-PERSON
+  the                  -> B-PERSON
+  Monster              -> B-PERSON
+  ```
+* **Post-Processed Output (Valid BIO):**
+  ```text
+  Victor               -> B-PERSON
+  Frankenstein         -> I-PERSON
+  the                  -> B-PERSON
+  Monster              -> I-PERSON
+  ```
+
 ---
 
 ## Panduan Struktur Repositori untuk Studi Kode

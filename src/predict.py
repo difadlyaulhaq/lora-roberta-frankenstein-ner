@@ -30,6 +30,35 @@ def print_model_config(model_dir):
     else:
         print(f"Warning: adapter_config.json not found in '{model_dir}'.")
 
+def post_process_bio_tags(tags):
+    """
+    Correct invalid BIO tag sequences.
+    For example:
+    - Change B-XYZ to I-XYZ if it immediately follows B-XYZ or I-XYZ of the same type.
+    - Change I-XYZ to B-XYZ if it starts a sequence (e.g. after O).
+    """
+    corrected_tags = []
+    for i, tag in enumerate(tags):
+        if tag.startswith("B-"):
+            ent_type = tag.split("-")[1]
+            if i > 0:
+                prev_tag = corrected_tags[i-1]
+                if prev_tag.endswith(ent_type) and (prev_tag.startswith("B-") or prev_tag.startswith("I-")):
+                    corrected_tags.append(f"I-{ent_type}")
+                    continue
+        elif tag.startswith("I-"):
+            ent_type = tag.split("-")[1]
+            if i == 0:
+                corrected_tags.append(f"B-{ent_type}")
+                continue
+            else:
+                prev_tag = corrected_tags[i-1]
+                if not (prev_tag.endswith(ent_type) and (prev_tag.startswith("B-") or prev_tag.startswith("I-"))):
+                    corrected_tags.append(f"B-{ent_type}")
+                    continue
+        corrected_tags.append(tag)
+    return corrected_tags
+
 def predict_entities(text, model_dir="results/best_model", mappings_path="results/tag_mappings.json"):
     """
     Load the best trained LoRA model and predict NER tags for a given raw text.
@@ -106,14 +135,19 @@ def predict_entities(text, model_dir="results/best_model", mappings_path="result
     # Zip words with their predicted tags
     results = list(zip(words, predicted_tags))
     
-    print("\n--- Hasil Prediksi Pelabelan NER ---")
+    # Apply BIO transition rule post-processing
+    corrected_tags = post_process_bio_tags(predicted_tags)
+    corrected_results = list(zip(words, corrected_tags))
+    
+    print("\n--- Hasil Prediksi Pelabelan NER (Raw) ---")
     for word, tag in results:
-        if tag != "O":
-            print(f"{word:20} -> {tag}")
-        else:
-            print(f"{word:20} -> O")
+        print(f"{word:20} -> {tag}")
+        
+    print("\n--- Hasil Prediksi Pelabelan NER (Setelah Koreksi Aturan BIO) ---")
+    for word, tag in corrected_results:
+        print(f"{word:20} -> {tag}")
             
-    return results
+    return corrected_results
 
 def predict_dataset(data_path, output_path="results/whole_dataset_predictions.json", model_dir="results/best_model", mappings_path="results/tag_mappings.json"):
     """
