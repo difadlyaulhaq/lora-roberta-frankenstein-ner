@@ -164,3 +164,35 @@ def evaluate_fine_grained(predictions, references, sentences=None):
         
     return results
 
+def evaluate_hidden_entities(predictions, references, sentences):
+    """
+    Calculate detection recall for hidden entities (monster, creature, wretch, fiend, demon, creator)
+    on the evaluation set.
+    """
+    hidden_keywords = ["monster", "creature", "wretch", "fiend", "demon", "creator"]
+    stats = {k: {"total": 0, "detected": 0} for k in hidden_keywords}
+    
+    for pred_seq, ref_seq, words in zip(predictions, references, sentences):
+        # Align predictions back to words
+        for w, true_t, pred_t in zip(words, ref_seq, pred_seq):
+            clean_word = w.lower().strip(".,;:!?\"'()[]{}")
+            if clean_word in hidden_keywords:
+                stats[clean_word]["total"] += 1
+                if "PERSON" in pred_t:
+                    stats[clean_word]["detected"] += 1
+                    
+    # Calculate overall recall
+    total_all = sum(stats[k]["total"] for k in hidden_keywords)
+    detected_all = sum(stats[k]["detected"] for k in hidden_keywords)
+    overall_recall = (detected_all / total_all * 100.0) if total_all > 0 else 0.0
+    
+    detailed_recall = {k: (stats[k]["detected"] / stats[k]["total"] * 100.0) if stats[k]["total"] > 0 else 0.0 for k in hidden_keywords}
+    
+    return {
+        "overall_recall": overall_recall,
+        "total_hidden": total_all,
+        "detected_hidden": detected_all,
+        "detailed_recall": detailed_recall
+    }
+
+

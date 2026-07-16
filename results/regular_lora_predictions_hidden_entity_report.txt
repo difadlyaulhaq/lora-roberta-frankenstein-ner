@@ -1,0 +1,12 @@
+==================================================
+      LITERARY HIDDEN ENTITY DETECTION REPORT      
+==================================================
+- 'monster   ': Detected 31/31 times (Recall: 100.00%)
+- 'creature  ': Detected 40/44 times (Recall: 90.91%)
+- 'wretch    ': Detected 21/25 times (Recall: 84.00%)
+- 'fiend     ': Detected 30/34 times (Recall: 88.24%)
+- 'demon     ': Detected 0/0 times (Recall: 0.00%)
+- 'creator   ': Detected 18/20 times (Recall: 90.00%)
+--------------------------------------------------
+Overall Hidden Entity Recall: 140/154 (90.91%)
+==================================================

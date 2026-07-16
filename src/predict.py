@@ -56,12 +56,19 @@ def predict_entities(text, model_dir="results/best_model", mappings_path="result
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[Device] Running inference on: '{device}'")
     
-    # Load tokenizer and base model
+    # Load tokenizer
     tokenizer = RobertaTokenizerFast.from_pretrained("roberta-base", add_prefix_space=True)
-    base_model = RobertaForTokenClassification.from_pretrained("roberta-base", num_labels=num_labels)
     
-    # Load LoRA adapter weights on top of the base model and move to device
-    model = PeftModel.from_pretrained(base_model, model_dir)
+    # Check if adapter_config.json exists (LoRA vs non-LoRA)
+    adapter_config_path = os.path.join(model_dir, "adapter_config.json")
+    if os.path.exists(adapter_config_path):
+        print(f"[Loading Mode] PEFT/LoRA adapter detected in '{model_dir}'")
+        base_model = RobertaForTokenClassification.from_pretrained("roberta-base", num_labels=num_labels)
+        model = PeftModel.from_pretrained(base_model, model_dir)
+    else:
+        print(f"[Loading Mode] Standard Full Fine-Tuning weights detected in '{model_dir}'")
+        model = RobertaForTokenClassification.from_pretrained(model_dir, num_labels=num_labels)
+        
     model.to(device)
     model.eval()
     
@@ -142,8 +149,17 @@ def predict_dataset(data_path, output_path="results/whole_dataset_predictions.js
     print(f"[Device] Running inference on: '{device}'")
     
     tokenizer = RobertaTokenizerFast.from_pretrained("roberta-base", add_prefix_space=True)
-    base_model = RobertaForTokenClassification.from_pretrained("roberta-base", num_labels=num_labels)
-    model = PeftModel.from_pretrained(base_model, model_dir)
+    
+    # Check if adapter_config.json exists (LoRA vs non-LoRA)
+    adapter_config_path = os.path.join(model_dir, "adapter_config.json")
+    if os.path.exists(adapter_config_path):
+        print(f"[Loading Mode] PEFT/LoRA adapter detected in '{model_dir}'")
+        base_model = RobertaForTokenClassification.from_pretrained("roberta-base", num_labels=num_labels)
+        model = PeftModel.from_pretrained(base_model, model_dir)
+    else:
+        print(f"[Loading Mode] Standard Full Fine-Tuning weights detected in '{model_dir}'")
+        model = RobertaForTokenClassification.from_pretrained(model_dir, num_labels=num_labels)
+        
     model.to(device)
     model.eval()
     
@@ -236,7 +252,8 @@ def predict_dataset(data_path, output_path="results/whole_dataset_predictions.js
     print("==================================================")
     
     # Save the report as text file for easy copy-paste to thesis
-    report_path = os.path.join(os.path.dirname(output_path), "hidden_entity_detection_report.txt")
+    base_name = os.path.splitext(os.path.basename(output_path))[0]
+    report_path = os.path.join(os.path.dirname(output_path), f"{base_name}_hidden_entity_report.txt")
     with open(report_path, "w", encoding="utf-8") as rf:
         rf.write("==================================================\n")
         rf.write("      LITERARY HIDDEN ENTITY DETECTION REPORT      \n")

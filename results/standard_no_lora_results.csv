@@ -1,0 +1,2 @@
+rank,alpha,f1,precision,recall,training_time_sec,peak_vram_gb,muc5_COR,muc5_INC,muc5_MIS,muc5_SPU,eLen_short_acc,eLen_long_acc,eCon_consistent_acc,eCon_inconsistent_acc,eFre_few_shot_acc,eFre_many_shot_acc,hidden_entity_recall
+N/A,N/A,0.8388746803069054,0.8346055979643766,0.8431876606683805,1055.2388322353363,2.3572945594787598,328,16,45,49,0.8496042216358839,0.6,0.8539325842696629,0.8341232227488151,0.8059701492537313,0.8627450980392157,96.875

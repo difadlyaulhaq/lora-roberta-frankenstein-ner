@@ -110,7 +110,103 @@ def generate_visualizations(csv_path, output_dir="results/plots"):
     plt.savefig(time_path, dpi=300)
     plt.close()
 
-    print(f"\nSuccess! Generated 4 plots inside: {output_dir}")
+    # ---------------------------------------------------------
+    # Plot 5 & 6: Method Comparison (Baseline vs Regular LoRA vs Best Grid LoRA)
+    # ---------------------------------------------------------
+    no_lora_csv = "results/standard_no_lora_results.csv"
+    lora_csv = "results/standard_lora_results.csv"
+    
+    if os.path.exists(no_lora_csv) and os.path.exists(lora_csv):
+        print("Generating Method Comparison charts...")
+        df_no_lora = pd.read_csv(no_lora_csv)
+        df_lora = pd.read_csv(lora_csv)
+        
+        # Best model from grid search
+        best_row = df.loc[df["f1"].idxmax()]
+        
+        methods_data = []
+        
+        # Method 1: No LoRA
+        methods_data.append({
+            "Metode": "Full FT (No LoRA)",
+            "F1-Score": df_no_lora.loc[0, "f1"],
+            "Hidden Entity Recall": df_no_lora.loc[0, "hidden_entity_recall"],
+            "Waktu Latih (s)": df_no_lora.loc[0, "training_time_sec"],
+            "Peak VRAM (GB)": df_no_lora.loc[0, "peak_vram_gb"]
+        })
+        
+        # Method 2: Regular LoRA
+        methods_data.append({
+            "Metode": "Regular LoRA (r=8, a=16)",
+            "F1-Score": df_lora.loc[0, "f1"],
+            "Hidden Entity Recall": df_lora.loc[0, "hidden_entity_recall"],
+            "Waktu Latih (s)": df_lora.loc[0, "training_time_sec"],
+            "Peak VRAM (GB)": df_lora.loc[0, "peak_vram_gb"]
+        })
+        
+        # Method 3: Best LoRA
+        methods_data.append({
+            "Metode": f"Best LoRA (r={int(best_row['rank'])}, a={int(best_row['alpha'])})",
+            "F1-Score": best_row["f1"],
+            "Hidden Entity Recall": best_row["hidden_entity_recall"],
+            "Waktu Latih (s)": best_row["training_time_sec"],
+            "Peak VRAM (GB)": best_row["peak_vram_gb"]
+        })
+        
+        df_methods = pd.DataFrame(methods_data)
+        
+        # Convert to percentage for F1 vs Hidden recall scale consistency
+        f1_pct = df_methods["F1-Score"] * 100.0
+        recall_pct = df_methods["Hidden Entity Recall"]
+        if recall_pct.max() <= 1.0:
+            recall_pct = recall_pct * 100.0
+            
+        # Plot 5: F1 vs Hidden Entity Recall
+        plt.figure(figsize=(10, 6))
+        x = np.arange(len(df_methods["Metode"]))
+        width = 0.35
+        
+        plt.bar(x - width/2, f1_pct, width, label="Overall F1-Score (%)", color="#9b59b6")
+        plt.bar(x + width/2, recall_pct, width, label="Hidden Entity Recall (%)", color="#e74c3c")
+        
+        plt.title("Perbandingan F1-Score dan Hidden Entity Recall antar Metode")
+        plt.xlabel("Metode Pelatihan")
+        plt.ylabel("Performa (%)")
+        plt.xticks(x, df_methods["Metode"])
+        plt.ylim(0, 110)
+        plt.legend(loc="lower right")
+        plt.tight_layout()
+        comparison_path = os.path.join(output_dir, "method_comparison_f1_hidden.png")
+        plt.savefig(comparison_path, dpi=300)
+        plt.close()
+        
+        # Plot 6: Training Time & VRAM
+        fig, ax1 = plt.subplots(figsize=(10, 6))
+        
+        color = '#1abc9c'
+        ax1.set_xlabel('Metode Pelatihan')
+        ax1.set_ylabel('Waktu Pelatihan (Detik)', color=color)
+        ax1.bar(x - width/2, df_methods["Waktu Latih (s)"], width, label="Waktu Pelatihan", color=color)
+        ax1.tick_params(axis='y', labelcolor=color)
+        
+        ax2 = ax1.twinx()  
+        color = '#f39c12'
+        ax2.set_ylabel('Peak VRAM (GB)', color=color)
+        ax2.bar(x + width/2, df_methods["Peak VRAM (GB)"], width, label="Peak VRAM", color=color)
+        ax2.tick_params(axis='y', labelcolor=color)
+        
+        plt.title("Efisiensi Komputasi (Waktu Latih vs Peak VRAM) antar Metode")
+        ax1.set_xticks(x)
+        ax1.set_xticklabels(df_methods["Metode"])
+        fig.tight_layout()
+        comp_time_path = os.path.join(output_dir, "method_comparison_time_vram.png")
+        plt.savefig(comp_time_path, dpi=300)
+        plt.close()
+        
+        print(f"5. Perbandingan Metode F1 & Hidden: {comparison_path}")
+        print(f"6. Perbandingan Efisiensi Komputasi: {comp_time_path}")
+
+    print(f"\nSuccess! Generated plots inside: {output_dir}")
     print(f"1. Heatmap F1-score: {heatmap_path}")
     print(f"2. Perbandingan MUC-5: {muc5_path}")
     print(f"3. Ketahanan Fine-Grained: {fine_grained_path}")
@@ -119,3 +215,4 @@ def generate_visualizations(csv_path, output_dir="results/plots"):
 if __name__ == "__main__":
     csv_file = "results/grid_search_results.csv"
     generate_visualizations(csv_file)
+

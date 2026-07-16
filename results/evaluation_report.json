@@ -1,42 +1,55 @@
 {
-    "overall_f1": 0.6571087216248507,
-    "classification_report": "              precision    recall  f1-score   support\n\n    CARDINAL       0.57      0.60      0.58        42\n        DATE       0.45      0.67      0.54        48\n         FAC       0.00      0.00      0.00         2\n         GPE       0.59      0.96      0.73        56\n    LANGUAGE       0.00      0.00      0.00         5\n         LOC       0.14      0.06      0.09        16\n        NORP       0.18      0.22      0.20         9\n     ORDINAL       1.00      0.93      0.97        30\n         ORG       0.00      0.00      0.00         1\n      PERSON       0.77      0.86      0.81       140\n    QUANTITY       0.00      0.00      0.00         3\n        TIME       0.35      0.37      0.36        35\n WORK_OF_ART       0.00      0.00      0.00         2\n\n   micro avg       0.61      0.71      0.66       389\n   macro avg       0.31      0.36      0.33       389\nweighted avg       0.60      0.71      0.64       389\n",
+    "overall_f1": 0.6836982968369829,
+    "classification_report": "              precision    recall  f1-score   support\n\n    CARDINAL       0.69      0.64      0.67        42\n        DATE       0.46      0.60      0.52        48\n         FAC       0.00      0.00      0.00         2\n         GPE       0.67      0.98      0.80        56\n    LANGUAGE       0.00      0.00      0.00         5\n         LOC       0.09      0.06      0.07        16\n        NORP       0.31      0.44      0.36         9\n     ORDINAL       0.96      0.90      0.93        30\n         ORG       0.00      0.00      0.00         1\n      PERSON       0.78      0.86      0.82       140\n    QUANTITY       0.00      0.00      0.00         3\n        TIME       0.44      0.49      0.46        35\n WORK_OF_ART       0.00      0.00      0.00         2\n\n   micro avg       0.65      0.72      0.68       389\n   macro avg       0.34      0.38      0.36       389\nweighted avg       0.63      0.72      0.67       389\n",
     "muc5_errors": {
-        "COR": 275,
-        "INC": 20,
+        "COR": 281,
+        "INC": 14,
         "MIS": 94,
-        "SPU": 153
+        "SPU": 138
     },
     "fine_grained_analysis": {
         "eLen_short": {
             "total": 379,
-            "correct": 270,
-            "accuracy": 0.712401055408971
+            "correct": 274,
+            "accuracy": 0.7229551451187335
         },
         "eLen_long": {
             "total": 10,
-            "correct": 5,
-            "accuracy": 0.5
+            "correct": 7,
+            "accuracy": 0.7
         },
         "eCon_consistent": {
             "total": 178,
-            "correct": 114,
-            "accuracy": 0.6404494382022472
+            "correct": 116,
+            "accuracy": 0.651685393258427
         },
         "eCon_inconsistent": {
             "total": 211,
-            "correct": 161,
-            "accuracy": 0.7630331753554502
+            "correct": 165,
+            "accuracy": 0.7819905213270142
         },
         "eFre_few_shot": {
             "total": 134,
-            "correct": 70,
-            "accuracy": 0.5223880597014925
+            "correct": 73,
+            "accuracy": 0.5447761194029851
         },
         "eFre_many_shot": {
             "total": 255,
-            "correct": 205,
-            "accuracy": 0.803921568627451
+            "correct": 208,
+            "accuracy": 0.8156862745098039
+        }
+    },
+    "hidden_entity_analysis": {
+        "overall_recall": 90.625,
+        "total_hidden": 32,
+        "detected_hidden": 29,
+        "detailed_recall": {
+            "monster": 100.0,
+            "creature": 100.0,
+            "wretch": 60.0,
+            "fiend": 91.66666666666666,
+            "demon": 0.0,
+            "creator": 100.0
         }
     }
 }

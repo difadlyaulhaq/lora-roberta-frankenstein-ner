@@ -5,7 +5,7 @@ import torch
 from transformers import Trainer, TrainingArguments, DataCollatorForTokenClassification, AutoTokenizer, EarlyStoppingCallback
 from seqeval.metrics import f1_score, precision_score, recall_score
 from .model import get_roberta_lora_model
-from .evaluate import profile_computing_performance, evaluate_muc5_errors, evaluate_fine_grained
+from .evaluate import profile_computing_performance, evaluate_muc5_errors, evaluate_fine_grained, evaluate_hidden_entities
 
 def get_compute_metrics_fn(id2tag):
     """
@@ -144,6 +144,9 @@ def grid_search_lora(train_dataset, eval_dataset, id2tag, model_name="roberta-ba
             eval_sentences = [x["tokens"] for x in eval_data] if eval_data else None
             fine_grained_results = evaluate_fine_grained(true_preds, true_labels, sentences=eval_sentences)
             
+            # Hidden entity recall analysis
+            hidden_results = evaluate_hidden_entities(true_preds, true_labels, sentences=eval_sentences) if eval_sentences else {"overall_recall": 0.0}
+            
             results.append({
                 "rank": r,
                 "alpha": alpha,
@@ -162,6 +165,7 @@ def grid_search_lora(train_dataset, eval_dataset, id2tag, model_name="roberta-ba
                 "eCon_inconsistent_acc": fine_grained_results.get("eCon_inconsistent", {}).get("accuracy", 0.0),
                 "eFre_few_shot_acc": fine_grained_results.get("eFre_few_shot", {}).get("accuracy", 0.0),
                 "eFre_many_shot_acc": fine_grained_results.get("eFre_many_shot", {}).get("accuracy", 0.0),
+                "hidden_entity_recall": hidden_results.get("overall_recall", 0.0),
             })
             
             # Clean up memory to avoid accumulation across runs

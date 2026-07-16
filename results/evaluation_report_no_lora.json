@@ -1,0 +1,55 @@
+{
+    "overall_f1": 0.8388746803069054,
+    "classification_report": "              precision    recall  f1-score   support\n\n    CARDINAL       0.80      0.79      0.80        42\n        DATE       0.79      0.79      0.79        48\n         FAC       0.00      0.00      0.00         2\n         GPE       0.89      0.91      0.90        56\n    LANGUAGE       0.00      0.00      0.00         5\n         LOC       0.53      0.62      0.57        16\n        NORP       0.50      0.89      0.64         9\n     ORDINAL       1.00      1.00      1.00        30\n         ORG       0.00      0.00      0.00         1\n      PERSON       0.92      0.94      0.93       140\n    QUANTITY       0.75      1.00      0.86         3\n        TIME       0.71      0.69      0.70        35\n WORK_OF_ART       0.00      0.00      0.00         2\n\n   micro avg       0.83      0.84      0.84       389\n   macro avg       0.53      0.59      0.55       389\nweighted avg       0.83      0.84      0.83       389\n",
+    "muc5_errors": {
+        "COR": 328,
+        "INC": 16,
+        "MIS": 45,
+        "SPU": 49
+    },
+    "fine_grained_analysis": {
+        "eLen_short": {
+            "total": 379,
+            "correct": 322,
+            "accuracy": 0.8496042216358839
+        },
+        "eLen_long": {
+            "total": 10,
+            "correct": 6,
+            "accuracy": 0.6
+        },
+        "eCon_consistent": {
+            "total": 178,
+            "correct": 152,
+            "accuracy": 0.8539325842696629
+        },
+        "eCon_inconsistent": {
+            "total": 211,
+            "correct": 176,
+            "accuracy": 0.8341232227488151
+        },
+        "eFre_few_shot": {
+            "total": 134,
+            "correct": 108,
+            "accuracy": 0.8059701492537313
+        },
+        "eFre_many_shot": {
+            "total": 255,
+            "correct": 220,
+            "accuracy": 0.8627450980392157
+        }
+    },
+    "hidden_entity_analysis": {
+        "overall_recall": 96.875,
+        "total_hidden": 32,
+        "detected_hidden": 31,
+        "detailed_recall": {
+            "monster": 100.0,
+            "creature": 100.0,
+            "wretch": 100.0,
+            "fiend": 91.66666666666666,
+            "demon": 0.0,
+            "creator": 100.0
+        }
+    }
+}
