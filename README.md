@@ -89,6 +89,16 @@ Jalankan ketiga eksperimen berikut untuk mengumpulkan data komparatif:
   ```cmd
   python scratch/reconstruct_logs.py
   ```
+* **Pengujian & Inferensi Model secara Manual (Opsional):**
+  Meskipun prediksi seluruh dataset novel berjalan secara otomatis di akhir pelatihan `src/main.py` (menghasilkan file `.json` prediksi), Anda dapat menjalankan pengujian kustom secara manual:
+  * Menguji kalimat tunggal secara langsung:
+    ```cmd
+    python src/predict.py --text "I saw Victor Frankenstein and the Monster in Geneva."
+    ```
+  * Menjalankan ulang prediksi untuk seluruh dataset secara manual:
+    ```cmd
+    python src/predict.py --data_path data/frankenstein_annotated.json
+    ```
 
 ---
 
