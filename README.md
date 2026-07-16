@@ -28,9 +28,9 @@ graph TD
 
     %% Fase C
     subgraph Fase_C [Fase C: Sintesis & Visualisasi Laporan]
-        E1 -->|Auto Inference| F1[baseline_no_lora_predictions.json]
-        E2 -->|Auto Inference| F2[regular_lora_predictions.json]
-        E3 -->|Auto Inference| F3[grid_search_best_predictions.json]
+        E1 -->|src/predict.py| F1[baseline_no_lora_predictions.json]
+        E2 -->|src/predict.py| F2[regular_lora_predictions.json]
+        E3 -->|src/predict.py| F3[grid_search_best_predictions.json]
         
         E3 -->|visualize_results.py| H[results/plots/ - Grafik Analisis]
         E3 -->|reconstruct_logs.py| I[results/full_training_log.txt]
